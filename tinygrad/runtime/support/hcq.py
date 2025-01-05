@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import cast, Type, TypeVar, Generic, Any
-import contextlib, decimal, statistics, time, ctypes, array, os, fcntl, sys
+import contextlib, decimal, statistics, time, ctypes, array, os, fcntl
 from tinygrad.helpers import PROFILE, from_mv, getenv, to_mv, round_up
 from tinygrad.renderer import Renderer
 from tinygrad.device import BufferSpec, Compiler, Compiled, LRUAllocator, ProfileRangeEvent, ProfileDeviceEvent
@@ -15,21 +15,18 @@ class HWInterface:
 
   def __init__(self, path:str, flags=os.O_RDONLY, fd=None):
     self.path = path
-    self.fd = os.open(path, flags) if fd is None else fd
+    self.fd = os.open(path, flags) or fd
     self.offset = 0
   def __del__(self):
     if self.fd: os.close(self.fd)
   def ioctl(self, request, arg): return fcntl.ioctl(self.fd, request, arg)
   def mmap(self, start, sz, prot, flags, offset): return libc.mmap(start, sz, prot, self.fd, offset)
-  def read(self, size=None, binary=False, newlines=False):
-    with open(self.fd, "rb" if binary else "r") as file:
-      file.seek(self.offset)
-      return file.read(size) if newlines or binary else file.read(size).rstrip()
-
-  def write(self, content, binary=False):
-    with open(self.fd, "wb" if binary else "w") as file: return file.write(content)
-  def listdir(self): return os.listdir(self.fd)
-  def seek(self, offset): self.offset += offset
+  def read(self, size=None, binary=False):
+    ret = os.read(self.fd, size) if size else os.read(self.fd, os.fstat(self.fd).st_size-self.offset)
+    return ret if binary else ret.decode()
+  def write(self, content, binary=False): os.write(self.fd, content) if binary else os.write(self.fd, content.encode("utf-8"))
+  def listdir(self): return os.listdir(self.path)
+  def seek(self, offset): self.offset = os.lseek(fd, offset, os.SEEK_CUR)
   @staticmethod
   def anon_mmap(start, sz, prot, flags, offset): return libc.mmap(start, sz, prot, flags, -1, offset)
   @staticmethod
@@ -39,10 +36,7 @@ class HWInterface:
   @staticmethod
   def readlink(path): return os.readlink(path)
   @staticmethod
-  def eventfd(initval, flags=None):
-    if sys.platform == "linux":
-      ret = HWInterface("", flags, os.eventfd(initval, flags))
-      return ret
+  def eventfd(initval, flags=None): return HWInterface("", flags, os.eventfd(initval, flags)) # type: ignore[attr-defined]
 
 if MOCKGPU:=getenv("MOCKGPU"):
   from test.mockgpu.mockgpu import MockHWInterface as HWInterface  # noqa: F401 # pylint: disable=unused-import
