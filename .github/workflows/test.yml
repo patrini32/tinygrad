@@ -29,6 +29,8 @@ jobs:
       run: pip install -e '.[docs]'
     - name: Install capstone for CLANG disassembly
       run: pip install capstone
+    - name: Set env to CLANG
+      run: printf "CLANG=1" >> $GITHUB_ENV
     - name: Use as an external package
       run: |
         mkdir $HOME/test_external_dir
