@@ -13,6 +13,7 @@ class HWInterface:
   """
 
   def __init__(self, path:str="", flags:int=os.O_RDONLY, fd:int|None=None):
+    print(path)
     self.path:str = path
     self.fd:int = fd or os.open(path, flags)
   def __del__(self): os.close(self.fd)
