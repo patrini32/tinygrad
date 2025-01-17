@@ -646,8 +646,8 @@ jobs:
         if: matrix.backend == 'gpu'
         shell: bash
         run: |
-          C:\msys64\usr\bin\wget.exe https://registrationcenter-download.intel.com/akdlm/IRC_NAS/ae29263e-38b9-4d43-86c3-376d6e0668e7/intel-oneapi-base-toolkit-2025.0.1.47_offline.exe
-          intel-oneapi-base-toolkit-2025.0.1.47_offline.exe -a --silent --eula accept
+          curl -O oneapi_install.exe https://registrationcenter-download.intel.com/akdlm/IRC_NAS/ae29263e-38b9-4d43-86c3-376d6e0668e7/intel-oneapi-base-toolkit-2025.0.1.47_offline.exe
+          oneapi_install.exe -a --silent --eula accept
       - name: Install dependencies
         shell: bash
         run: pip install -e '.[testing${{matrix.backend=='llvm'&&',llvm'||matrix.backend=='ptx'&&',cuda'||matrix.backend=='triton'&&',triton'||''}}]' --extra-index-url https://download.pytorch.org/whl/cpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/Triton-Nightly/pypi/simple/
