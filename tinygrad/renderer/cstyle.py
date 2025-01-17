@@ -50,6 +50,8 @@ base_rewrite = PatternMatcher([
     *([strip_parens(ctx[v]) if v.op == x.op and x.op in {Ops.ADD, Ops.MUL, Ops.XOR} else ctx[v] for v in x.src]), x.dtype)),
   (UPat(Ops.GEP, name="x"), lambda ctx,x: ctx[x.src[0]] + \
     (f"[{x.arg[0]}]" if x.src[0].dtype.count > (8 if ctx.device in {"CUDA", "NV"} else 4) or ctx.device == 'CLANG' else f".{'xyzwabcd'[x.arg[0]]}")),
+  (UPat(Ops.CAST, src=(UPat.var('dtype'),), dtype=dtypes.bfloat16), lambda ctx, dtype: \
+    UOp(Ops.COPY, dtype, (UOp(Ops.DEVICE, arg=ctx[0].device)), (UOp(Ops.COPY, dtypes.bfloat16, (UOp(Ops.DEVICE, arg="LLVM"), ctx[0].base) ).cast(dtype)))),
 ])
 
 extra_pm = PatternMatcher([
