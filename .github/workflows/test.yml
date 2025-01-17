@@ -618,7 +618,7 @@ jobs:
         if: matrix.backend=='amd'
         run: python -m pytest -n=auto test/test_hcq.py test/test_tiny.py --durations=20
 
- windowstests:
+  windowstests:
     strategy:
       fail-fast: false
       matrix:
@@ -670,7 +670,6 @@ jobs:
           export PR_TITLE=$(jq -r .pull_request.title "$GITHUB_EVENT_PATH")
           export COMMIT_MESSAGE=$(git show -s --format=%B ${{ github.event.pull_request.head.sha }})
           cp test/external/process_replay/process_replay.py ./process_replay.py && git fetch origin master && git -c advice.detachedHead=false checkout origin/master && PYTHONPATH=. python3 process_replay.py
-
 
   #testunicorn:
   #  name: ARM64 unicorn Test
