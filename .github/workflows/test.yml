@@ -646,7 +646,7 @@ jobs:
         if: matrix.backend == 'gpu'
         shell: bash
         run: |
-          curl -O oneapi_install.exe https://registrationcenter-download.intel.com/akdlm/IRC_NAS/ae29263e-38b9-4d43-86c3-376d6e0668e7/intel-oneapi-base-toolkit-2025.0.1.47_offline.exe
+          curl -o oneapi_install.exe https://registrationcenter-download.intel.com/akdlm/IRC_NAS/ae29263e-38b9-4d43-86c3-376d6e0668e7/intel-oneapi-base-toolkit-2025.0.1.47_offline.exe
           oneapi_install.exe -a --silent --eula accept
       - name: Install dependencies
         shell: bash
