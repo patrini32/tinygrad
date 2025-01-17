@@ -227,4 +227,4 @@ def fix_bf16(weights:Dict[Any, Tensor]):
     # TODO: without casting to float16, 70B llama OOM on tinybox.
     return {k:v.cast(dtypes.float16) if v.dtype == dtypes.bfloat16 else v for k,v in weights.items()}
   # TODO: check if device supports bf16
-  return weights.items()
+  return {k:v.cast(dtypes.half) if v.dtype == dtypes.bfloat16 else v for k,v in weights.items()}
