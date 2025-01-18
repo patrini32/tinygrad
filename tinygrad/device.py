@@ -3,16 +3,12 @@ from dataclasses import dataclass, replace
 from collections import defaultdict
 from typing import Optional, Any, Iterator, Generator
 import multiprocessing, importlib, inspect, functools, pathlib, os, ctypes, ctypes.util, platform, contextlib, sys, re, atexit, pickle, decimal, time
-from mmap import mmap, ACCESS_READ, ACCESS_WRITE, MAP_ANONYMOUS, MAP_PRIVATE
-from tinygrad.helpers import CI, OSX, getenv, diskcache_get, diskcache_put, DEBUG, GlobalCounters, flat_mv, from_mv, PROFILE, temp, mv_address, \
-                             cpu_time_execution
+from tinygrad.helpers import CI, OSX, WIN, getenv, diskcache_get, diskcache_put, DEBUG, GlobalCounters, flat_mv, from_mv, PROFILE, temp, mv_address, \
+                            cpu_time_execution
+if WIN: import win32process, win32con
+else: from mmap import mmap, ACCESS_READ, ACCESS_WRITE, MAP_ANONYMOUS, MAP_PRIVATE, PROT_EXEC
 from tinygrad.dtype import DType, ImageDType, PtrDType, dtypes
 from tinygrad.renderer import Renderer
-
-if sys.platform != "win32":
-  from mmap import PROT_EXEC
-else:
-  PROT_EXEC = 0x10
 
 # **************** Device ****************
 
@@ -133,7 +129,7 @@ class Buffer:
     assert self.is_allocated(), "buffer must be allocated to deallocate"
     if self._base is None and (self.options is None or self.options.external_ptr is None):
       if not self.device.startswith("DISK"): GlobalCounters.mem_used -= self.nbytes
-      self.allocator.free(self._buf, self.nbytes, self.options)
+      self.allocator.free(self._buf,  self.nbytes, self.options)
       del self._buf
   def __reduce__(self):
     buf = None
@@ -230,10 +226,13 @@ class CPUProgram:
   def __init__(self, name:str, lib:bytes):
     # On apple silicon with SPRR enabled (it always is in macos) RWX pages are unrepresentable: https://blog.svenpeter.dev/posts/m1_sprr_gxf/
     # MAP_JIT allows us to easily flip pages from RW- to R-X and vice versa. It is a noop on intel cpus. (man pthread_jit_write_protect_np)
-    self.mem = mmap(-1, len(lib), MAP_ANONYMOUS | MAP_PRIVATE | (MAP_JIT if OSX else 0), ACCESS_READ | ACCESS_WRITE | PROT_EXEC)
+    if WIN: self.mem = win32process.VirtualAllocEx(hProcess=win32process.GetCurrentProcess(), size=len(lib), \
+                                                   allocationType=win32con.MEM_COMMIT, flProtect=win32con.PAGE_EXECUTE_READWRITE)
+    else: self.mem = mmap(-1, len(lib), MAP_ANONYMOUS | MAP_PRIVATE | (MAP_JIT if OSX else 0), ACCESS_READ | ACCESS_WRITE | PROT_EXEC)
 
     if OSX: CPUProgram.helper_handle.pthread_jit_write_protect_np(False)
-    self.mem.write(lib)
+    if WIN: win32process.WriteProcessMemory(win32process.GetCurrentProcess(), self.mem, lib)
+    else: self.mem.write(lib)
     if OSX: CPUProgram.helper_handle.pthread_jit_write_protect_np(True)
 
     # __clear_cache isn't a normal libc function, but a compiler support routine found in libgcc_s for gcc and compiler-rt for clang.

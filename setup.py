@@ -74,6 +74,9 @@ setup(name='tinygrad',
         'testing_tf': [
             "tensorflow==2.15.1",
             "tensorflow_addons",
-        ]
+        ],
+        'windows': [
+            "pywin32",
+        ],
       },
       include_package_data=True)
