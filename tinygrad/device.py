@@ -3,7 +3,7 @@ from dataclasses import dataclass, replace
 from collections import defaultdict
 from typing import Optional, Any, Iterator, Generator
 import multiprocessing, importlib, inspect, functools, pathlib, os, ctypes, ctypes.util, platform, contextlib, sys, re, atexit, pickle, decimal, time
-from mmap import mmap, ACCESS_READ, ACCESS_WRITE, MAP_ANON, MAP_PRIVATE
+from mmap import mmap, ACCESS_READ, ACCESS_WRITE, MAP_ANONYMOUS, MAP_PRIVATE
 from tinygrad.helpers import CI, OSX, getenv, diskcache_get, diskcache_put, DEBUG, GlobalCounters, flat_mv, from_mv, PROFILE, temp, mv_address, \
                              cpu_time_execution
 from tinygrad.dtype import DType, ImageDType, PtrDType, dtypes
@@ -230,7 +230,7 @@ class CPUProgram:
   def __init__(self, name:str, lib:bytes):
     # On apple silicon with SPRR enabled (it always is in macos) RWX pages are unrepresentable: https://blog.svenpeter.dev/posts/m1_sprr_gxf/
     # MAP_JIT allows us to easily flip pages from RW- to R-X and vice versa. It is a noop on intel cpus. (man pthread_jit_write_protect_np)
-    self.mem = mmap(-1, len(lib), MAP_ANON | MAP_PRIVATE | (MAP_JIT if OSX else 0), ACCESS_READ | ACCESS_WRITE | PROT_EXEC)
+    self.mem = mmap(-1, len(lib), MAP_ANONYMOUS | MAP_PRIVATE | (MAP_JIT if OSX else 0), ACCESS_READ | ACCESS_WRITE | PROT_EXEC)
 
     if OSX: CPUProgram.helper_handle.pthread_jit_write_protect_np(False)
     self.mem.write(lib)
