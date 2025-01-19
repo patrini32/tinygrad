@@ -221,7 +221,7 @@ MAP_JIT = 0x0800
 
 # CPUProgram is a jit/shellcode program that can be just mmapped and jumped to
 class CPUProgram:
-  helper_handle = ctypes.CDLL(ctypes.util.find_library('System') if OSX else 'libgcc_s.so.1')
+  if not WIN: helper_handle = ctypes.CDLL(ctypes.util.find_library('System') if OSX else 'libgcc_s.so.1')
 
   def __init__(self, name:str, lib:bytes):
     # On apple silicon with SPRR enabled (it always is in macos) RWX pages are unrepresentable: https://blog.svenpeter.dev/posts/m1_sprr_gxf/
@@ -239,8 +239,8 @@ class CPUProgram:
     # libgcc_s comes as shared library but compiler-rt is only a bunch of static library archives which we can't directly load, but fortunately
     # it somehow found its way into libSystem on macos (likely because it used __builtin_clear_cache) and libgcc_s is ~always present on linux
     # Using ["name"] instead of .name because otherwise name is getting mangled: https://docs.python.org/3.12/reference/expressions.html#index-5
-    CPUProgram.helper_handle["__clear_cache"](ctypes.c_void_p(mv_address(self.mem)), ctypes.c_void_p(mv_address(self.mem) + len(lib)))
-
+    # TODO: use FlushInstructionCache
+    if not WIN: CPUProgram.helper_handle["__clear_cache"](ctypes.c_void_p(mv_address(self.mem)), ctypes.c_void_p(mv_address(self.mem) + len(lib))) 
     self.fxn = ctypes.CFUNCTYPE(None)(mv_address(self.mem))
 
   def __call__(self, *bufs, vals=(), wait=False):
