@@ -6,7 +6,7 @@ import multiprocessing, importlib, inspect, functools, pathlib, os, ctypes, ctyp
 from tinygrad.helpers import CI, OSX, WIN, getenv, diskcache_get, diskcache_put, DEBUG, GlobalCounters, flat_mv, from_mv, PROFILE, temp, mv_address, \
                             cpu_time_execution
 if WIN: import win32process, win32con
-else: from mmap import mmap, ACCESS_READ, ACCESS_WRITE, MAP_ANONYMOUS, MAP_PRIVATE, PROT_EXEC
+else: from mmap import mmap, PROT_READ, PROT_WRITE, MAP_ANONYMOUS, MAP_PRIVATE, PROT_EXEC
 from tinygrad.dtype import DType, ImageDType, PtrDType, dtypes
 from tinygrad.renderer import Renderer
 
@@ -221,14 +221,14 @@ MAP_JIT = 0x0800
 
 # CPUProgram is a jit/shellcode program that can be just mmapped and jumped to
 class CPUProgram:
-  #helper_handle = ctypes.CDLL(ctypes.util.find_library('System') if OSX else 'libgcc_s.so.1')
+  helper_handle = ctypes.CDLL(ctypes.util.find_library('System') if OSX else 'libgcc_s.so.1')
 
   def __init__(self, name:str, lib:bytes):
     # On apple silicon with SPRR enabled (it always is in macos) RWX pages are unrepresentable: https://blog.svenpeter.dev/posts/m1_sprr_gxf/
     # MAP_JIT allows us to easily flip pages from RW- to R-X and vice versa. It is a noop on intel cpus. (man pthread_jit_write_protect_np)
     if WIN: self.mem = win32process.VirtualAllocEx(hProcess=win32process.GetCurrentProcess(), size=len(lib), \
                                                    allocationType=win32con.MEM_COMMIT, flProtect=win32con.PAGE_EXECUTE_READWRITE)
-    else: self.mem = mmap(-1, len(lib), MAP_ANONYMOUS | MAP_PRIVATE | (MAP_JIT if OSX else 0), ACCESS_READ | ACCESS_WRITE | PROT_EXEC)
+    else: self.mem = mmap(-1, len(lib), MAP_ANONYMOUS | MAP_PRIVATE | (MAP_JIT if OSX else 0), PROT_READ | PROT_WRITE | PROT_EXEC)
 
     if OSX: CPUProgram.helper_handle.pthread_jit_write_protect_np(False)
     if WIN: win32process.WriteProcessMemory(win32process.GetCurrentProcess(), self.mem, lib)
@@ -239,7 +239,7 @@ class CPUProgram:
     # libgcc_s comes as shared library but compiler-rt is only a bunch of static library archives which we can't directly load, but fortunately
     # it somehow found its way into libSystem on macos (likely because it used __builtin_clear_cache) and libgcc_s is ~always present on linux
     # Using ["name"] instead of .name because otherwise name is getting mangled: https://docs.python.org/3.12/reference/expressions.html#index-5
-    #CPUProgram.helper_handle["__clear_cache"](ctypes.c_void_p(mv_address(self.mem)), ctypes.c_void_p(mv_address(self.mem) + len(lib)))
+    CPUProgram.helper_handle["__clear_cache"](ctypes.c_void_p(mv_address(self.mem)), ctypes.c_void_p(mv_address(self.mem) + len(lib)))
 
     self.fxn = ctypes.CFUNCTYPE(None)(mv_address(self.mem))
 
