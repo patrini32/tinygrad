@@ -25,7 +25,7 @@ class ClangJITCompiler(Compiler):
   def compile(self, src:str) -> bytes:
     # -fno-math-errno is required for __builtin_sqrt to become an instruction instead of a function call
     # x18 is a reserved platform register. It is clobbered on context switch in macos and is used to store TEB pointer in windows on arm, don't use it
-    args = ['-march=native', '-O2', '-fPIC', '-fno-math-errno', '-nostdlib', '-nostartfiles', '-Wl,--oformat=binary']
+    args = ['-march=native', '-O2', '-fPIC', '-fno-math-errno', '-nostdlib', '-ffreestanding', '-nostartfiles', '-Wl,--oformat=binary']
     arch_args = ['-ffixed-x18'] if platform.machine() == 'arm64' else []
     with tempfile.NamedTemporaryFile(delete=True) as output_file:
       subprocess.check_output(['clang', '-x', 'c', *args, *arch_args, '-', '-o', str(output_file.name)], input=src.encode('utf-8'))
