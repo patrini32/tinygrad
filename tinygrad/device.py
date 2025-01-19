@@ -240,7 +240,7 @@ class CPUProgram:
     # it somehow found its way into libSystem on macos (likely because it used __builtin_clear_cache) and libgcc_s is ~always present on linux
     # Using ["name"] instead of .name because otherwise name is getting mangled: https://docs.python.org/3.12/reference/expressions.html#index-5
     # TODO: use FlushInstructionCache
-    if not WIN: CPUProgram.helper_handle["__clear_cache"](ctypes.c_void_p(mv_address(self.mem)), ctypes.c_void_p(mv_address(self.mem) + len(lib))) 
+    if not WIN: CPUProgram.helper_handle["__clear_cache"](ctypes.c_void_p(mv_address(self.mem)), ctypes.c_void_p(mv_address(self.mem) + len(lib)))
     self.fxn = ctypes.CFUNCTYPE(None)(mv_address(self.mem))
 
   def __call__(self, *bufs, vals=(), wait=False):
